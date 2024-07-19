@@ -11,10 +11,6 @@ from dotenv import load_dotenv
 import gitlab
 
 SECONDS_PER_MINUTE = 60
-SCRIPT_PATH = Path(__file__).parent
-DAILY_BACKUP_PATH = Path(SCRIPT_PATH, "backups", "daily")
-MONTHLY_BACKUP_PATH = Path(SCRIPT_PATH, "backups", "monthly")
-
 
 def exportProjects():
     # Get All member projects from gitlab
@@ -30,6 +26,7 @@ def exportProjects():
         # create export
         project = gl.projects.get(groupProject.id)
         exports[groupProject.path_with_namespace] = project.exports.create()
+        break;
 
         if ((groupProjectIndex + 1) % EXPORTS_PER_MINUTE == 0):
             print(
@@ -40,7 +37,7 @@ def exportProjects():
     return exports
 
 
-def downloadExports(backupName, exports):
+def downloadExports(backupPath, backupName, exports):
     print("Starting download of backups")
     # download exports
     while (len(exports) > 0):
@@ -48,11 +45,11 @@ def downloadExports(backupName, exports):
             export = exports[exportName]
             export.refresh()
             if export.export_status == 'finished':
-                backupPath = Path(DAILY_BACKUP_PATH, backupName)
-                if not os.path.exists(backupPath):
-                    os.makedirs(backupPath)
+                dailyBackupPath = Path(backupPath, "daily", backupName)
+                if not os.path.exists(dailyBackupPath):
+                    os.makedirs(dailyBackupPath)
                 exportFileName = f"{backupStart.strftime('%Y-%m-%d')}__{exportName.replace('/', '__')}.tgz"
-                fullExportPath = Path(backupPath, exportFileName)
+                fullExportPath = Path(dailyBackupPath, exportFileName)
 
                 print(f"Starting download of: {fullExportPath}")
                 downloadStart = datetime.now()
@@ -78,41 +75,41 @@ def downloadExports(backupName, exports):
             time.sleep(1)
 
 
-def createDailyBackup(backupName):
+def createDailyBackup(backupPath, backupName):
     print(f"Start daily backup {backupName}")
     exportedProjects = exportProjects()
 
-    downloadExports(backupName, exportedProjects)
+    downloadExports(backupPath, backupName, exportedProjects)
 
 
-def createMonthlyBackup(backupName):
+def createMonthlyBackup(backupPath, backupName):
     monthlyBackupPrefix = backupName[:7]
     foundBackupOfCurrentMonth = False
-    for root, dirs, files in os.walk(MONTHLY_BACKUP_PATH, topdown=False):
+    for root, dirs, files in os.walk(Path(backupPath, "monthly"), topdown=False):
         for dir in dirs:
             if dir.startswith(monthlyBackupPrefix):
                 print(f"Found backup for current month: {dir}")
                 foundBackupOfCurrentMonth = True
                 break
 
-    dailyBackup = Path(DAILY_BACKUP_PATH, backupName)
-    monthlyBackup = Path(MONTHLY_BACKUP_PATH, backupName)
+    dailyBackup = Path(backupPath, "daily", backupName)
+    monthlyBackup = Path(backupPath, "monthly", backupName)
     if (foundBackupOfCurrentMonth == False):
         shutil.copytree(dailyBackup, monthlyBackup)
         print(f"Backup {dailyBackup} copied to {monthlyBackup}")
 
 
-def removeOldBackups():
+def removeOldBackups(backupPath):
     now = datetime.now()
     print(
         f"Start removing backups older than {DAILY_BACKUP_RETENTION_PERIOD} days")
-    for root, dirs, files in os.walk(DAILY_BACKUP_PATH, topdown=False):
+    for root, dirs, files in os.walk(Path(backupPath, "daily"), topdown=False):
         for dir in dirs:
             backupDate = datetime.strptime(dir, "%Y-%m-%d")
             daysSinceBackup = math.trunc((
                 now - backupDate).total_seconds() / (24 * 60 * 60))
             if (daysSinceBackup > DAILY_BACKUP_RETENTION_PERIOD):
-                shutil.rmtree(Path(DAILY_BACKUP_PATH, dir))
+                shutil.rmtree(Path(backupPath, "daily", dir))
                 print(f"Backup removed: {dir}")
 
     print("Removing backups finished")
@@ -125,6 +122,7 @@ if __name__ == '__main__':
     GITLAB_URL = os.getenv('GITLAB_URL', 'https://gitlab.com')
     DAILY_BACKUP_RETENTION_PERIOD = os.getenv(
         'DAILY_BACKUP_RETENTION_PERIOD', 5)
+    BACKUP_PATH= os.getenv('BACKUP_PATH', './backups')
 
     # https://docs.gitlab.com/ee/user/project/settings/import_export.html#rate-limits
     EXPORTS_PER_MINUTE = os.getenv('EXPORTS_PER_MINUTE', 6)
@@ -133,9 +131,9 @@ if __name__ == '__main__':
     backupStart = datetime.now()
     backupName = f"{backupStart.strftime('%Y-%m-%d')}"
 
-    createDailyBackup(backupName)
-    createMonthlyBackup(backupName)
-    removeOldBackups()
+    createDailyBackup(BACKUP_PATH, backupName)
+    createMonthlyBackup(BACKUP_PATH, backupName)
+    removeOldBackups(BACKUP_PATH)
 
     backupEnd = datetime.now()
     print(f"Backup finished after {backupEnd - backupStart}")
