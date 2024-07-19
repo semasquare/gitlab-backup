@@ -6,9 +6,9 @@ import shutil
 import time
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
 
 import gitlab
-from dotenv import load_dotenv
 
 SECONDS_PER_MINUTE = 60
 SCRIPT_PATH = Path(__file__).parent
@@ -35,11 +35,13 @@ def exportProjects():
             print(
                 f"Waiting {SECONDS_PER_MINUTE} seconds to not exceed rate limit")
             time.sleep(SECONDS_PER_MINUTE)
+            
 
     return exports
 
 
 def downloadExports(backupName, exports):
+    print("Starting download of backups")
     # download exports
     while (len(exports) > 0):
         for exportIndex, exportName in enumerate(list(exports)):
@@ -69,7 +71,7 @@ def downloadExports(backupName, exports):
                 print(f"Download finished after {downloadDuration}")
                 if (downloadDuration.total_seconds() < SECONDS_PER_MINUTE):
                     print(
-                        f"Waiting {SECONDS_PER_MINUTE -downloadDuration.total_seconds()} seconds to not exceed rate limit")
+                        f"Waiting {SECONDS_PER_MINUTE - downloadDuration.total_seconds()} seconds to not exceed rate limit")
                     time.sleep(SECONDS_PER_MINUTE -
                                downloadDuration.total_seconds())
 
@@ -117,12 +119,10 @@ def removeOldBackups():
 
 
 if __name__ == '__main__':
-    # load .env file
     load_dotenv()
-
     GITLAB_API_TOKEN = os.getenv('GITLAB_API_TOKEN')
-    GITLAB_URL = os.getenv('GITLAB_URL')
     GITLAB_GROUP_NAME = os.getenv('GITLAB_GROUP_NAME')
+    GITLAB_URL = os.getenv('GITLAB_URL', 'https://gitlab.com')
     DAILY_BACKUP_RETENTION_PERIOD = os.getenv(
         'DAILY_BACKUP_RETENTION_PERIOD', 5)
 
