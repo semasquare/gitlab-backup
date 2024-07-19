@@ -26,7 +26,6 @@ def exportProjects():
         # create export
         project = gl.projects.get(groupProject.id)
         exports[groupProject.path_with_namespace] = project.exports.create()
-        break;
 
         if ((groupProjectIndex + 1) % EXPORTS_PER_MINUTE == 0):
             print(
