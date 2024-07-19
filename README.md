@@ -26,11 +26,19 @@ sudo python3 -m pip install --upgrade pip
 python3 -m pip -V
 ```
 
+Install python3 venv:
+
+```shell
+python3 -m venv /Scripts/gitlab-backup
+cd /volume1/Scripts/gitlab-backup
+source bin/active
+```
+
 Install dependencies:
 
 ```shell
-cd /volume1/Backup/gitlab.com
-sudo python3 -m ensurepip requirements.txt
+cd /volume1/Scripts/gitlab-backup
+python3 -m pip install -r requirements.txt
 ```
 
 Create Task with user defined script on http://nas.local:
