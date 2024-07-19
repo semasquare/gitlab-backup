@@ -48,9 +48,3 @@ Create Task with user defined script on http://nas.local:
 ```
 /usr/bin/python3 /volume1/Backup/gitlab.com/gitlab-backup.py
 ```
-
-# Usage
-
-```shell
-docker run -it --init --env-file .env -v "./data:/app/data" com.semasquare.gitlab-backup
-```
