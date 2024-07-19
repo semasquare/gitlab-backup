@@ -28,6 +28,8 @@ python3 -m pip -V
 
 Install python3 venv:
 
+https://kb.synology.com/en-uk/DSM/tutorial/Set_up_Python_virtual_environment_on_NAS
+
 ```shell
 python3 -m venv /Scripts/gitlab-backup
 cd /volume1/Scripts/gitlab-backup
